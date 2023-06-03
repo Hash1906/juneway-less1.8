@@ -1,0 +1,56 @@
+version: '1'
+
+services:
+  nginx1:
+    image: nginx:1.23.4
+    restart: always
+    depends_on:
+      - grafana
+    container_name: nginx1
+    ports:
+      - "8001:8001"
+    networks:
+      - nginx1
+    volumes:
+      - nginx_cfg:${CONTAINER_CFG_PATH}:ro
+
+  nginx2:
+    image: nginx:1.23.4
+    restart: always
+    depends_on:
+      - grafana
+    container_name: nginx2
+    ports:
+      - "8002:8001"
+    networks:
+      - nginx2
+    volumes:
+      - nginx_cfg:${CONTAINER_CFG_PATH}:ro
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    container_name: grafana
+    expose:
+      - "3000"    
+    networks:
+      - nginx1
+      - nginx2
+    healthcheck:
+      test: curl --fail http://localhost:3000 || exit 1
+      interval: 10s
+      retries: 10
+      start_period: 10s
+      timeout: 5s
+
+networks:
+  nginx1:
+  nginx2:
+
+volumes:
+  nginx_cfg:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${HOST_CFG_PATH}
+      o: bind
